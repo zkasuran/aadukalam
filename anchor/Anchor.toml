@@ -1,8 +1,9 @@
 [toolchain]
 package_manager = "pnpm"
+solana_version = "4.1.2"
 
 [features]
-resolution = true
+resolution = false
 skip-lint = false
 
 [programs.localnet]
@@ -14,8 +15,24 @@ paycheck = "9DAHUC1KQUsBMB9cQk8EdVZfKAhVukLhUsyuQYZBLgAy"
 thecall = "83f9z9RHjyvFSbcvWQixNq13vXiu35baFiDtqvG8q7LY"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "../.devnet-keypair.json"
 
 [scripts]
 test = "pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+# Staged Pyth PriceUpdateV2 accounts preloaded into the local validator so The
+# Call resolve path runs offline. Owned by the Pyth Pro receiver so the real
+# Account<PriceUpdateV2> owner check passes. Regenerate with
+# node tests/fixtures/gen_pyth_fixtures.cjs
+[test.validator]
+gossip_port = 8100
+dynamic_port_range = "8101-8130"
+
+[[test.validator.account]]
+address = "4KAGsvgyxCPaPoM8gxEHWhverx1eHPshaNc3F4X3TAq4"
+filename = "tests/fixtures/pyth_price_fresh.json"
+
+[[test.validator.account]]
+address = "4ihPhsFgmvWt362PHugqZNgAgTBDFRdFeoXrpHZd5s3s"
+filename = "tests/fixtures/pyth_price_stale.json"

@@ -1,0 +1,12 @@
+{
+  "note": "Staged Pyth PriceUpdateV2 fixtures for local resolve tests. Not real Hermes updates.",
+  "receiverProgramId": "rec2HHDDnjLfj4kE7VyEtFA1HPGQLK33259532cRyHp",
+  "feedHex": "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688",
+  "expo": -5,
+  "price": "25500000",
+  "conf": "5000",
+  "freshPriceAccount": "4KAGsvgyxCPaPoM8gxEHWhverx1eHPshaNc3F4X3TAq4",
+  "stalePriceAccount": "4ihPhsFgmvWt362PHugqZNgAgTBDFRdFeoXrpHZd5s3s",
+  "publishTimeFresh": "4102444800",
+  "publishTimeStale": "946684800"
+}
