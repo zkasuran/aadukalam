@@ -1,0 +1,32 @@
+# deps / build
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# anchor / solana
+target/
+.anchor/
+test-ledger/
+
+# env and keys (never commit)
+.env
+.env.local
+.env.*.local
+*.env
+.devnet-keypair.json
+**/keypairs/*.json
+
+# private form-fill and render outputs (house rule)
+/submit/
+DEMO-*.mp4
+upload-*/
+
+# os / editor
+.DS_Store
+*.log

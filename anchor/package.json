@@ -1,0 +1,25 @@
+{
+  "name": "anchor",
+  "private": true,
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test",
+    "test:skip-build": "anchor test --skip-build",
+    "deploy:devnet": "anchor deploy --provider.cluster devnet",
+    "keys:sync": "anchor keys sync"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@solana/web3.js": "1.99.0"
+  },
+  "devDependencies": {
+    "ts-mocha": "11.1.0",
+    "mocha": "12.0.2",
+    "chai": "4.5.0",
+    "@types/mocha": "10.0.10",
+    "@types/chai": "4.3.20",
+    "@types/bn.js": "5.2.0",
+    "bn.js": "5.2.5",
+    "typescript": "5.9.3"
+  }
+}

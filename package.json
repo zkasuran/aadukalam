@@ -1,0 +1,26 @@
+{
+  "name": "aadukalam",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "anchor:build": "pnpm -C anchor run build",
+    "anchor:test": "pnpm -C anchor run test",
+    "anchor:deploy": "pnpm -C anchor run deploy:devnet"
+  },
+  "devDependencies": {
+    "turbo": "2.11.3",
+    "typescript": "5.9.3",
+    "@types/node": "22.20.4",
+    "vitest": "5.0.1",
+    "prettier": "^3.3.3"
+  }
+}
