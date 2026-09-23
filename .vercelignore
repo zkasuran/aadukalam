@@ -1,0 +1,10 @@
+anchor
+.hq
+submit
+**/.anchor
+**/test-ledger
+CONTENT-*.html
+DEMO-*.mp4
+upload-*
+.devnet-keypair.json
+*.log
