@@ -1,0 +1,39 @@
+# NOTICE
+
+Aadukalam is licensed under LicenseRef-zkasuran-SAND-1.0 (see LICENSE). It builds on the
+third-party components below, each used under its own stated licence. This file lists the
+load-bearing ones. Every dependency ships its own licence text in its package under
+node_modules or its source crate.
+
+## Frameworks and UI
+- Next.js, React, React DOM: MIT
+- Tailwind CSS, tailwind-merge, clsx: MIT
+- shadcn/ui component patterns: MIT
+- Radix UI primitives (@radix-ui/*): MIT
+- class-variance-authority: Apache-2.0
+- lucide-react: ISC
+- recharts: MIT
+- zod, date-fns, bn.js, decimal.js: MIT
+
+## Solana and Anchor
+- @solana/web3.js, @solana/kit, @solana/spl-token: Apache-2.0
+- @solana/wallet-adapter-* (base, react, react-ui, wallets): Apache-2.0
+- @coral-xyz/anchor (TS), anchor-lang, anchor-spl (Rust): Apache-2.0
+
+## Protocol SDKs and data
+- @pythnetwork/hermes-client, @pythnetwork/pyth-solana-receiver: Apache-2.0
+- pyth-solana-receiver-sdk, pythnet-sdk (Rust): Apache-2.0
+- @kamino-finance/klend-sdk: MIT
+- @meteora-ag/dynamic-bonding-curve-sdk: MIT
+- @orca-so/whirlpools and related (transitive via Kamino): Apache-2.0
+
+## Services accessed over HTTP (not redistributed)
+- Jupiter swap and price API
+- Pyth Hermes price service (Pro tier is key-gated)
+- Tessera and PreStocks public REST APIs
+- MiniMax model API (the Leash agent)
+
+Data from these services is fetched live per request and rendered. Aadukalam does not
+redistribute or republish their data. See DATA-SOURCES.md for how each feed is used and the
+terms posture. Licence names above are the licences those projects publish. Before this repo
+was made public each was confirmed present in the dependency tree.

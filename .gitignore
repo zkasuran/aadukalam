@@ -24,6 +24,7 @@ test-ledger/
 
 # private form-fill and render outputs (house rule)
 /submit/
+CONTENT-*.html
 DEMO-*.mp4
 upload-*/
 
