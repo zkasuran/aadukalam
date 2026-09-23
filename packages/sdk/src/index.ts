@@ -1,19 +1,9 @@
 // @aadukalam/sdk
-// Shared client SDK. Placeholder surface for the foundation. Module agents
-// replace the bodies with the real Pyth, Jupiter, Kamino and Anchor clients.
+// Shared client and server SDK for Aadukalam: Solana primitives, the Pyth Hermes
+// price client and the Jupiter swap client. Module agents import typed clients
+// from this one entry point. Server-only pieces (Kamino, MiniMax) are Next route
+// handlers, not part of this bundle.
 
-export type Cluster = "mainnet-beta" | "devnet";
-
-export interface AadukalamConfig {
-  cluster: Cluster;
-  rpcUrl: string;
-}
-
-export const SDK_VERSION = "0.0.0";
-
-/**
- * Build a config object from a cluster and an RPC url. Placeholder for now.
- */
-export function createConfig(cluster: Cluster, rpcUrl: string): AadukalamConfig {
-  return { cluster, rpcUrl };
-}
+export * from "./solana";
+export * from "./pyth";
+export * from "./jupiter";
