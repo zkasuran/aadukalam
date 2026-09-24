@@ -88,12 +88,15 @@ function token(opts: PresetBuildOptions, leftover: number) {
 // price discovers a fair value slowly instead of running 100x. A high opening
 // fee that decays deters a snipe-and-dump, dynamic fee taxes volatility and
 // fees accrue in the quote asset. Most liquidity is permanently locked so the
-// graduated venue is deep.
+// graduated venue is deep. A small leftover buffer is required because the
+// packed fixed supply plus the SDK swap buffer rounds just over the minted
+// total. On-chain create_config rejects a zero-leftover config with
+// InvalidTokenSupply. 10M out of 1e9 (1%) gives the buffer headroom.
 function buildBlueChip(opts: PresetBuildOptions): ConfigParameters {
   return buildCurveWithMarketCap({
     initialMarketCap: 100_000,
     migrationMarketCap: 300_000,
-    token: token(opts, 0),
+    token: token(opts, 10_000_000),
     fee: {
       baseFeeParams: {
         baseFeeMode: BaseFeeMode.FeeSchedulerLinear,

@@ -21,7 +21,9 @@ export default function Page() {
           <p className="mt-2 max-w-2xl text-muted-foreground">
             A trust score for pre-IPO tokens. Is the share really backed, is
             there a real audit, how far the price sits from mark and whether the
-            implied valuation holds up.
+            implied valuation holds up. For Tessera T-Tokens it goes one step
+            further, pricing each one live on Jupiter and letting you trade it
+            with a wallet-signed swap.
           </p>
 
           <div className="mt-5 flex max-w-2xl items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm text-amber-200/90">

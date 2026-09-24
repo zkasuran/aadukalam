@@ -9,6 +9,8 @@ import {
   X,
 } from "lucide-react";
 
+import type { JupiterPriceInfo } from "@aadukalam/sdk";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -24,6 +26,7 @@ import {
 } from "../_lib/format";
 import { PremiumBar } from "./PremiumBar";
 import { StatTile } from "./StatTile";
+import { TesseraActions } from "./TesseraActions";
 import { TrustBadge } from "./TrustBadge";
 
 function SignalIcon({ state }: { state: GradeSignal["state"] }) {
@@ -121,7 +124,15 @@ function BackingBlock({ row }: { row: ReceiptRow }) {
   );
 }
 
-export function ScoreCard({ row }: { row: ReceiptRow }) {
+export function ScoreCard({
+  row,
+  livePrice = null,
+  pricedAt = null,
+}: {
+  row: ReceiptRow;
+  livePrice?: JupiterPriceInfo | null;
+  pricedAt?: number | null;
+}) {
   const grade = gradeRow(row);
   const headlineVal = row.impliedValuation ?? row.markValuation;
   const gapMultiple = fmtMultiple(headlineVal, row.onChainMktCap);
@@ -209,6 +220,10 @@ export function ScoreCard({ row }: { row: ReceiptRow }) {
         </p>
 
         <BackingBlock row={row} />
+
+        {row.provider === "tessera" ? (
+          <TesseraActions row={row} livePrice={livePrice} pricedAt={pricedAt} />
+        ) : null}
 
         <div className="mt-auto flex items-center justify-between pt-1 text-xs">
           <a

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { COMPANION, PILLARS } from "@/lib/modules";
+import { COMPANIONS, PILLARS } from "@/lib/modules";
 import { cn } from "@/lib/utils";
 
 function itemClass(active: boolean) {
@@ -37,14 +37,17 @@ export function ModuleSidebar() {
 
       <div>
         <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Companion
+          Companions
         </p>
-        <Link
-          href={COMPANION.href}
-          className={itemClass(pathname === COMPANION.href)}
-        >
-          {COMPANION.name}
-        </Link>
+        <ul className="space-y-0.5">
+          {COMPANIONS.map((c) => (
+            <li key={c.slug}>
+              <Link href={c.href} className={itemClass(pathname === c.href)}>
+                {c.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </nav>
   );

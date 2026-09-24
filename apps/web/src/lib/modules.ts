@@ -102,16 +102,28 @@ export const PILLARS: Pillar[] = [
   },
 ];
 
-export const COMPANION: ModuleDef = {
-  slug: "opening-bell",
-  href: "/opening-bell",
-  name: "Opening Bell",
-  blurb: "A Meteora DBC equity launchpad companion.",
-};
+export const COMPANIONS: ModuleDef[] = [
+  {
+    slug: "opening-bell",
+    href: "/opening-bell",
+    name: "Opening Bell",
+    blurb: "A Meteora DBC equity launchpad, live on devnet.",
+  },
+  {
+    slug: "launch",
+    href: "/launch",
+    name: "Agent Launch",
+    blurb: "Launch a stock-paired agent token with Clawpump and Meteora.",
+  },
+];
 
-/** Flat lookup of every module by href, companion included. */
+/** Kept for existing single-companion references. */
+export const COMPANION: ModuleDef = COMPANIONS[0];
+
+/** Flat lookup of every module by href, companions included. */
 export function findModule(href: string): ModuleDef | undefined {
-  if (href === COMPANION.href) return COMPANION;
+  const comp = COMPANIONS.find((c) => c.href === href);
+  if (comp) return comp;
   for (const pillar of PILLARS) {
     const hit = pillar.modules.find((m) => m.href === href);
     if (hit) return hit;

@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
+import type { JupiterPriceMap } from "@aadukalam/sdk";
+
 import type { ReceiptResponse } from "../_lib/types";
 import { ScoreCard } from "./ScoreCard";
 
@@ -39,11 +41,17 @@ export function ProviderPanel({
   data,
   fetchError,
   summary,
+  livePrices,
+  pricedAt = null,
 }: {
   loading: boolean;
   data: ReceiptResponse | null;
   fetchError: string | null;
   summary: ReactNode;
+  // Live Jupiter prices keyed by mint, passed only for the Tessera surface so the
+  // action layer stays Tessera-only. PreStocks renders without it.
+  livePrices?: JupiterPriceMap;
+  pricedAt?: number | null;
 }) {
   return (
     <div>
@@ -78,7 +86,12 @@ export function ProviderPanel({
         <>
           <div className="grid gap-4 md:grid-cols-2">
             {data.rows.map((row) => (
-              <ScoreCard key={`${row.provider}:${row.mint}`} row={row} />
+              <ScoreCard
+                key={`${row.provider}:${row.mint}`}
+                row={row}
+                livePrice={livePrices?.[row.mint] ?? null}
+                pricedAt={pricedAt}
+              />
             ))}
           </div>
           <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/70">

@@ -19,6 +19,7 @@ import { loadTokens, getToken, type TokenInfo } from "@aadukalam/data";
 import { CurveChart } from "./_components/CurveChart";
 import { PresetCard } from "./_components/PresetCard";
 import { AuctionSimulator } from "./_components/AuctionSimulator";
+import { LivePoolCard } from "./_components/LivePoolCard";
 import {
   PRESETS,
   getPreset,
@@ -251,6 +252,10 @@ function PageBody(props: PageBodyProps) {
               with a high fee that decays and lock most of the liquidity so the
               graduated venue stays deep. Every preset below is tuned for that.
             </p>
+          </div>
+
+          <div className="mt-6">
+            <LivePoolCard />
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">

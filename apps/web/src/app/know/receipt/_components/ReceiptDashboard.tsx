@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type { ReceiptResponse } from "../_lib/types";
+import { useJupiterPrices } from "../_lib/useJupiterPrices";
 import { ProviderPanel } from "./ProviderPanel";
+import { WatchlistStrip } from "./WatchlistStrip";
 
 interface Slice {
   loading: boolean;
@@ -74,6 +76,16 @@ export function ReceiptDashboard() {
   const tessera = useProvider("/api/receipt/tessera");
   const prestocks = useProvider("/api/receipt/prestocks");
 
+  // Live Jupiter prices for the Tessera mints only. This drives the ACTION layer
+  // (live price, premium vs mark, the trade CTA) and never touches PreStocks, so
+  // the Tessera bounty surface stays a pure Tessera + Jupiter integration.
+  const tesseraMints = useMemo(
+    () => tessera.data?.rows.map((r) => r.mint) ?? [],
+    [tessera.data]
+  );
+  const livePrices = useJupiterPrices(tesseraMints);
+  const tesseraRows = tessera.data?.rows ?? [];
+
   return (
     <div className="mt-6">
       <GradeLegend />
@@ -84,17 +96,21 @@ export function ReceiptDashboard() {
         </TabsList>
 
         <TabsContent value="tessera" className="mt-4">
+          <WatchlistStrip rows={tesseraRows} livePrices={livePrices.map} />
           <ProviderPanel
             loading={tessera.loading}
             data={tessera.data}
             fetchError={tessera.error}
+            livePrices={livePrices.map}
+            pricedAt={livePrices.pricedAt}
             summary={
               <>
                 <span className="font-medium text-foreground">Tessera</span>{" "}
                 T-Tokens are loan participation rights held inside a Cayman SPC,
                 with a Chainlink Proof-of-Reserve, Fireblocks custody and a
                 published Accretion Labs audit. Receipt reads the three live
-                tokens straight from the Tessera public API.
+                tokens from the Tessera public API, prices them live on Jupiter
+                and lets you trade each one with a wallet-signed swap.
               </>
             }
           />

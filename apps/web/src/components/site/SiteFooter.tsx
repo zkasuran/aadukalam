@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { PILLARS, COMPANION } from "@/lib/modules";
+import { PILLARS, COMPANIONS } from "@/lib/modules";
 
 export function SiteFooter() {
   return (
@@ -32,16 +32,17 @@ export function SiteFooter() {
                     </Link>
                   </li>
                 ))}
-                {p.key === "play" && (
-                  <li>
-                    <Link
-                      href={COMPANION.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {COMPANION.name}
-                    </Link>
-                  </li>
-                )}
+                {p.key === "play" &&
+                  COMPANIONS.map((c) => (
+                    <li key={c.slug}>
+                      <Link
+                        href={c.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {c.name}
+                      </Link>
+                    </li>
+                  ))}
               </ul>
             </div>
           ))}
