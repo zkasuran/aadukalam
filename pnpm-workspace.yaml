@@ -1,6 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  uuid: 9.0.1
 allowBuilds:
   '@stellar/stellar-sdk': false
   bigint-buffer: false
