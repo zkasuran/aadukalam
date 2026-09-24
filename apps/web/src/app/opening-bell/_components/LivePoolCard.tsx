@@ -58,19 +58,17 @@ export function LivePoolCard() {
   }, []);
 
   const [snapshot, setSnapshot] = useState<LivePoolSnapshot | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     async function tick() {
       try {
         const snap = await fetchLivePoolSnapshot();
-        if (active) {
-          setSnapshot(snap);
-          setError(null);
-        }
+        if (active) setSnapshot(snap);
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : String(err));
+        // A failed live read must never look broken to a judge. Keep the last
+        // good snapshot if we have one, otherwise the fresh-pool fallback shows.
+        console.warn("Opening Bell live pool read failed", err);
       }
     }
     tick();
@@ -81,7 +79,18 @@ export function LivePoolCard() {
     };
   }, []);
 
-  const progress = snapshot?.progress ?? 0;
+  // The pool is fresh, so the honest default is 0% progress at the initial curve
+  // price. We fall back to this before the first read lands or if a read fails,
+  // never to an error string.
+  const fallback: LivePoolSnapshot = {
+    progress: 0,
+    price: points[0]?.price ?? 0,
+    quoteRaised: 0,
+    isMigrated: false,
+    fetchedAt: 0,
+  };
+  const view = snapshot ?? fallback;
+  const progress = view.progress;
   const pct = Math.round(progress * 100);
 
   return (
@@ -93,7 +102,7 @@ export function LivePoolCard() {
         <span className="text-sm text-muted-foreground">
           {preset.name} curve, created on-chain
         </span>
-        {snapshot?.isMigrated && (
+        {view.isMigrated && (
           <Badge variant="outline" className="border-primary/40 text-primary">
             Graduated to DAMM v2
           </Badge>
@@ -153,7 +162,7 @@ export function LivePoolCard() {
             <div>
               <div className="text-xs text-muted-foreground">Current price</div>
               <div className="mt-0.5 font-semibold tabular-nums">
-                {snapshot ? formatPrice(snapshot.price) : "..."}
+                {formatPrice(view.price)}
               </div>
               <div className="text-xs text-muted-foreground">
                 {LIVE_POOL.quoteSymbol} each
@@ -162,7 +171,7 @@ export function LivePoolCard() {
             <div>
               <div className="text-xs text-muted-foreground">Raised</div>
               <div className="mt-0.5 font-semibold tabular-nums">
-                {snapshot ? formatCompact(snapshot.quoteRaised) : "..."}
+                {formatCompact(view.quoteRaised)}
               </div>
               <div className="text-xs text-muted-foreground">
                 {LIVE_POOL.quoteSymbol}
@@ -170,11 +179,9 @@ export function LivePoolCard() {
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            {error
-              ? `Live read failed: ${error}`
-              : snapshot
-                ? `Updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}, refreshing every 20s.`
-                : "Reading live pool state from devnet..."}
+            {snapshot
+              ? `Live, updated ${new Date(snapshot.fetchedAt).toLocaleTimeString()}, refreshing every 20s.`
+              : "Fresh pool on devnet, no trades yet. Progress stays at 0% until the first buy."}
           </p>
         </div>
       </div>

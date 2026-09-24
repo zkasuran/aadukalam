@@ -4,7 +4,7 @@
 // transaction on devnet (see .hq/devnet-demo.json under openingBell).
 // This is a test token on devnet, no real value.
 // House style: no em dashes, no comma before "and" or "or".
-import { Connection } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 // BN comes through anchor so it carries a resolvable type without @types/bn.js.
 import { BN } from "@coral-xyz/anchor";
 
@@ -22,6 +22,8 @@ export interface LivePoolMeta {
   quoteMint: string;
   quoteSymbol: string;
   quoteDecimals: SupportedDecimal;
+  /** on-chain migration (graduation) threshold in raw quote units */
+  migrationQuoteThreshold: string;
   baseSymbol: string;
   baseName: string;
   baseDecimals: SupportedDecimal;
@@ -42,6 +44,7 @@ export const LIVE_POOL: LivePoolMeta = {
   quoteMint: "9z4aUKCSirSorBCc81EvhWmnm5Y47L8tZR8ZNRE1k5u4",
   quoteSymbol: "AADU-DEMO-STOCK",
   quoteDecimals: 8,
+  migrationQuoteThreshold: "10951122271423",
   baseSymbol: "AOBD",
   baseName: "Aadukalam Opening Bell Demo",
   baseDecimals: 6,
@@ -84,36 +87,47 @@ export interface LivePoolSnapshot {
   fetchedAt: number;
 }
 
-// The pool account is decoded by the SDK under a poolState wrapper. Read the
-// verified runtime shape rather than the IDL account type.
-interface RawPoolState {
-  poolState: {
-    sqrtPrice: BN;
-    quoteReserve: BN;
-    baseReserve: BN;
-    isMigrated: number | boolean;
-  };
-}
+// VirtualPool account byte layout (SDK 1.5.12), verified against the live pool:
+//   0    8-byte account discriminator (d5e005d16245775c)
+//   240  quoteReserve   u64 little-endian
+//   280  sqrtPrice      u128 little-endian (Q64.64)
+//   305  isMigrated     u8
+// We decode the raw account ourselves instead of the SDK's Anchor account
+// coder. The coder resolves to the app's pinned anchor when Next bundles it,
+// and its discriminator check throws "Invalid account discriminator" in the
+// browser even though the account is valid. Raw byte reads are version and
+// bundler independent, so the same numbers land in Node and the browser.
+const POOL_DISCRIMINATOR = "d5e005d16245775c";
+const OFF_QUOTE_RESERVE = 240;
+const OFF_SQRT_PRICE = 280;
+const OFF_IS_MIGRATED = 305;
 
 /** Read the live pool state from devnet. Fresh Connection so it never depends
  * on the app cluster: this pool only exists on devnet. */
 export async function fetchLivePoolSnapshot(): Promise<LivePoolSnapshot> {
   const connection = new Connection(LIVE_POOL.rpc, "confirmed");
-  const client = createDbcClient(connection);
-
-  const progress = await client.state.getPoolQuoteTokenCurveProgress(LIVE_POOL.pool);
-  const virtualPool = (await client.state.getPool(LIVE_POOL.pool)) as unknown as
-    | RawPoolState
-    | null;
-  if (!virtualPool) {
+  const info = await connection.getAccountInfo(new PublicKey(LIVE_POOL.pool));
+  if (!info) {
     throw new Error(`pool ${LIVE_POOL.pool} not found on devnet`);
   }
-  const ps = virtualPool.poolState;
+  const data = info.data;
+  if (data.subarray(0, 8).toString("hex") !== POOL_DISCRIMINATOR) {
+    throw new Error("unexpected pool account discriminator");
+  }
+
+  const quoteReserve = new BN(data.subarray(OFF_QUOTE_RESERVE, OFF_QUOTE_RESERVE + 8), "le");
+  const sqrtPrice = new BN(data.subarray(OFF_SQRT_PRICE, OFF_SQRT_PRICE + 16), "le");
+  const threshold = new BN(LIVE_POOL.migrationQuoteThreshold);
+
+  const progress = threshold.isZero()
+    ? 0
+    : Number(quoteReserve.toString()) / Number(threshold.toString());
+
   return {
     progress: Math.max(0, Math.min(progress, 1)),
-    price: priceFromSqrt(ps.sqrtPrice, LIVE_POOL.baseDecimals, LIVE_POOL.quoteDecimals),
-    quoteRaised: toHuman(ps.quoteReserve, LIVE_POOL.quoteDecimals),
-    isMigrated: Boolean(ps.isMigrated),
+    price: priceFromSqrt(sqrtPrice, LIVE_POOL.baseDecimals, LIVE_POOL.quoteDecimals),
+    quoteRaised: toHuman(quoteReserve, LIVE_POOL.quoteDecimals),
+    isMigrated: data[OFF_IS_MIGRATED] !== 0,
     fetchedAt: Date.now(),
   };
 }
