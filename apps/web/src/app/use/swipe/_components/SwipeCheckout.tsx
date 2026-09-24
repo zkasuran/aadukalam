@@ -36,6 +36,19 @@ type SendState =
   | { kind: "sent"; signature: string }
   | { kind: "error"; message: string };
 
+// Small pulsing marker that the numbers are read live and refreshing.
+function LiveBadge() {
+  return (
+    <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      </span>
+      Live
+    </span>
+  );
+}
+
 // A borrow whose price context we have (live reserve read) lets the widget suggest
 // a safe collateral amount. Without it the user types the amount and the quote
 // still returns the real terms once collateral and spend are set.
@@ -57,11 +70,18 @@ export function SwipeCheckout() {
 
   const [send, setSend] = useState<SendState>({ kind: "idle" });
 
-  // Load the live reserve list once. On failure fall back to the registry catalog
-  // so the widget is still explorable, clearly labeled as catalog only.
+  // Bumped every 20s to re-quote so the borrow terms track live reserves.
+  const [quoteTick, setQuoteTick] = useState(0);
+
+  // Load the live reserve list, then keep it current on a 20s poll so the
+  // collateral picker LTVs and oracle prices track mainnet. On the first read a
+  // failure falls back to the registry catalog, clearly labeled as catalog only.
+  // A later poll that fails keeps the live data already on screen rather than
+  // dropping it to the catalog on a transient RPC hiccup.
   useEffect(() => {
     const controller = new AbortController();
-    (async () => {
+    let firstLoad = true;
+    async function loadReserves() {
       try {
         const res = await fetchReserves(controller.signal);
         const collateralReserves = (res.reserves ?? [])
@@ -86,16 +106,30 @@ export function SwipeCheckout() {
         }
         throw new Error(res.error ?? "no collateral reserves returned");
       } catch (err) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || !firstLoad) return;
         const catalog = catalogCollateral();
         setOptions(catalog.map((c) => ({ symbol: c.ticker, mint: c.mint, decimals: c.decimals })));
         setReservesLive(false);
         setSelectedMint((cur) => cur || catalog[0]?.mint || "");
         const message = err instanceof Error ? err.message : String(err);
         setReservesNote(`Live reserve read unavailable (${message}). Showing the catalog. Set a mainnet RPC for live terms.`);
+      } finally {
+        firstLoad = false;
       }
-    })();
-    return () => controller.abort();
+    }
+    void loadReserves();
+    const timer = setInterval(loadReserves, 20_000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, []);
+
+  // Re-quote on a 20s poll so the borrow terms (LTV used, health, liquidation
+  // price) stay current against live reserves even while the inputs sit idle.
+  useEffect(() => {
+    const timer = setInterval(() => setQuoteTick((n) => n + 1), 20_000);
+    return () => clearInterval(timer);
   }, []);
 
   const selected = useMemo(
@@ -146,7 +180,7 @@ export function SwipeCheckout() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [selectedMint, spendNum, collateralNum, mode, inputsValid]);
+  }, [selectedMint, spendNum, collateralNum, mode, inputsValid, quoteTick]);
 
   const canSuggest = reservesLive && !!selected?.oraclePrice && !!selected?.maxLtv && spendNum > 0;
   function useSafeAmount() {
@@ -189,6 +223,7 @@ export function SwipeCheckout() {
           <CardTitle className="flex items-center gap-2 text-base">
             <Store className="h-4 w-4 text-primary" aria-hidden />
             Checkout
+            {reservesLive ? <LiveBadge /> : null}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

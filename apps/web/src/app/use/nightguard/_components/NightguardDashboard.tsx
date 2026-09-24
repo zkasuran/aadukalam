@@ -94,6 +94,19 @@ interface Loaded {
   isExample: boolean;
 }
 
+// Small pulsing marker that the readout is polling live and refreshing.
+function LiveBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      </span>
+      Live
+    </span>
+  );
+}
+
 export function NightguardDashboard() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
@@ -113,10 +126,13 @@ export function NightguardDashboard() {
     if (connected && addressInput === "") setAddressInput(connected);
   }, [connected, addressInput]);
 
-  const load = React.useCallback(async (owner: string) => {
+  const load = React.useCallback(async (owner: string, opts?: { background?: boolean }) => {
     const q = owner.trim();
     if (!q) return;
-    setState((s) => ({ ...s, loading: true, error: null, isExample: false }));
+    const background = opts?.background ?? false;
+    if (!background) {
+      setState((s) => ({ ...s, loading: true, error: null, isExample: false }));
+    }
     try {
       const res = await fetch(
         `/api/nightguard/obligation?owner=${encodeURIComponent(q)}`,
@@ -124,11 +140,15 @@ export function NightguardDashboard() {
       );
       const json = (await res.json()) as ObligationResponse;
       if (!json.ok || !json.health) {
+        // A background poll keeps the last good read rather than dropping it on
+        // a transient RPC hiccup. A foreground read surfaces the error.
+        if (background) return;
         setState({ loading: false, health: null, error: json.error ?? "read failed", isExample: false });
         return;
       }
       setState({ loading: false, health: json.health, error: null, isExample: false });
     } catch (err) {
+      if (background) return;
       setState({
         loading: false,
         health: null,
@@ -141,6 +161,19 @@ export function NightguardDashboard() {
   const showExample = React.useCallback(() => {
     setState({ loading: false, health: EXAMPLE, error: null, isExample: true });
   }, []);
+
+  // Once a real position is read, keep it current on a 15s background poll so the
+  // health gauge, buffer and liquidation price track mainnet. The example
+  // position is static illustrative data, so it is never polled.
+  const liveOwner =
+    state.health?.found && !state.isExample ? state.health.owner : null;
+  React.useEffect(() => {
+    if (!liveOwner) return;
+    const timer = setInterval(() => {
+      void load(liveOwner, { background: true });
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, [liveOwner, load]);
 
   const canSign =
     !state.isExample &&
@@ -279,15 +312,16 @@ function Readout({ health: h, isExample, canSign, signAndSend }: ReadoutProps) {
 
   // Pyth 24/7 fair value for the single collateral, through our keyed proxy.
   // Falls back to nothing when the key is missing or the feed does not resolve.
+  // Polled every 15s so the off-hours price line tracks the live feed.
   const [pyth, setPyth] = React.useState<number | null>(null);
+  const feedId = single?.pythFeedId ?? null;
   React.useEffect(() => {
     let alive = true;
     setPyth(null);
-    const feed = single?.pythFeedId;
-    if (!feed) return;
-    (async () => {
+    if (!feedId) return;
+    const readPyth = async () => {
       try {
-        const prices = await fetchPythPrices([feed]);
+        const prices = await fetchPythPrices([feedId]);
         const p = prices[0];
         if (p && alive) {
           const human = pythHumanPrice(p);
@@ -296,11 +330,14 @@ function Readout({ health: h, isExample, canSign, signAndSend }: ReadoutProps) {
       } catch {
         // no live Pyth price, the gauge still uses the Kamino oracle price
       }
-    })();
+    };
+    void readPyth();
+    const timer = setInterval(readPyth, 15_000);
     return () => {
       alive = false;
+      clearInterval(timer);
     };
-  }, [single?.pythFeedId]);
+  }, [feedId]);
 
   return (
     <div className="space-y-6">
@@ -317,6 +354,11 @@ function Readout({ health: h, isExample, canSign, signAndSend }: ReadoutProps) {
 
       <div className="grid gap-6 md:grid-cols-[minmax(240px,300px)_1fr]">
         <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-5">
+          {!isExample && (
+            <div className="mb-1 flex w-full justify-end">
+              <LiveBadge />
+            </div>
+          )}
           <HealthGauge
             buffer={buffer}
             band={band}

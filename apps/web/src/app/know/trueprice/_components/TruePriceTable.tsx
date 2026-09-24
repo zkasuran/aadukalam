@@ -17,7 +17,24 @@ import { MARKET_STATE_SHORT, type MarketInfo, type MarketState } from "../_lib/m
 import type { TruePriceRow } from "../_lib/trueprice";
 import { loadSnapshot, type TruePriceSnapshot } from "../_lib/data";
 
-const REFRESH_MS = 30000;
+// Auto-refresh cadence. Kept at 15s so the screen reads as live without
+// hammering the keyless upstreams behind our proxies (never below 12s).
+const REFRESH_MS = 15000;
+
+// How long a row keeps its highlight after its on-chain price moves. Matches the
+// tp-row-flash keyframe below so the class is dropped exactly as the pulse ends.
+const FLASH_MS = 1400;
+
+// One-shot row pulse in the module's primary accent, injected once so the effect
+// stays inside this file and touches no shared stylesheet. prefers-reduced-motion
+// is already neutralised globally in globals.css, so this respects it for free.
+const FLASH_CSS = `
+@keyframes tp-row-flash {
+  0% { background-color: hsl(155 89% 51% / 0.16); }
+  100% { background-color: hsl(155 89% 51% / 0); }
+}
+.tp-row-flash { animation: tp-row-flash 1.4s ease-out; }
+`;
 
 type SortKey = "liquidity" | "drift";
 
@@ -57,6 +74,12 @@ export function TruePriceTable({
   const [query, setQuery] = React.useState("");
   const [sortKey, setSortKey] = React.useState<SortKey>("liquidity");
   const [now, setNow] = React.useState(() => Date.now());
+  // Mints whose on-chain price moved on the latest poll, highlighted briefly.
+  const [flashing, setFlashing] = React.useState<Set<string>>(new Set());
+  // Last seen on-chain price per mint, used to diff between polls. A ref so the
+  // stable refresh callback never goes stale on it.
+  const prevPricesRef = React.useRef<Map<string, number>>(new Map());
+  const flashTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = React.useCallback(async () => {
     try {
@@ -65,6 +88,25 @@ export function TruePriceTable({
       setError(
         s.jupiterOk ? null : "No live prices came back from Jupiter. Retrying on the next refresh.",
       );
+
+      // Diff on-chain prices against the last poll. First load has no prior
+      // prices, so nothing flashes until a real change lands.
+      const prev = prevPricesRef.current;
+      const next = new Map<string, number>();
+      const changed = new Set<string>();
+      for (const row of s.rows) {
+        if (typeof row.dexPrice === "number" && Number.isFinite(row.dexPrice)) {
+          next.set(row.mint, row.dexPrice);
+          const before = prev.get(row.mint);
+          if (before != null && before !== row.dexPrice) changed.add(row.mint);
+        }
+      }
+      prevPricesRef.current = next;
+      if (changed.size > 0) {
+        setFlashing(changed);
+        if (flashTimer.current) clearTimeout(flashTimer.current);
+        flashTimer.current = setTimeout(() => setFlashing(new Set()), FLASH_MS);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load prices.");
     } finally {
@@ -79,6 +121,7 @@ export function TruePriceTable({
     return () => {
       clearInterval(id);
       clearInterval(clock);
+      if (flashTimer.current) clearTimeout(flashTimer.current);
     };
   }, [refresh]);
 
@@ -101,7 +144,25 @@ export function TruePriceTable({
 
   return (
     <div className="space-y-4">
+      <style dangerouslySetInnerHTML={{ __html: FLASH_CSS }} />
       <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary"
+          title="Prices auto-refresh every 15 seconds"
+          aria-label="Live prices, auto-refreshing"
+        >
+          <span className="relative flex h-2 w-2">
+            <span
+              className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"
+              aria-hidden="true"
+            />
+            <span
+              className="relative inline-flex h-2 w-2 rounded-full bg-primary"
+              aria-hidden="true"
+            />
+          </span>
+          Live
+        </span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -188,7 +249,10 @@ export function TruePriceTable({
                       onSelect(r, !!snap?.pythKeyMissing);
                     }
                   }}
-                  className="cursor-pointer border-t border-border transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
+                  className={cx(
+                    "cursor-pointer border-t border-border transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none",
+                    flashing.has(r.mint) && "tp-row-flash",
+                  )}
                 >
                   <td className="px-4 py-3">
                     <div className="font-medium">{r.ticker}</div>

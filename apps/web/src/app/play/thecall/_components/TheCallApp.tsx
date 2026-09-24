@@ -57,26 +57,55 @@ export function TheCallApp() {
   const [status, setStatus] = React.useState<Status>(null);
   const [nowSec, setNowSec] = React.useState(() => Math.floor(Date.now() / 1000));
 
-  const refresh = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const ms = await fetchMarkets(program);
-      setMarkets(ms);
-      if (publicKey) {
-        const mine = await fetchUserBets(program, publicKey);
-        setBets(new Map(mine.map((b) => [b.market, b])));
-      } else {
-        setBets(new Map());
+  // Foreground refresh shows the loader and surfaces errors. A background poll
+  // passes { silent: true } so it never flashes the loader or clobbers a
+  // transaction status, and a transient RPC failure just waits for the next tick.
+  const refresh = React.useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      try {
+        const ms = await fetchMarkets(program);
+        setMarkets(ms);
+        if (publicKey) {
+          const mine = await fetchUserBets(program, publicKey);
+          setBets(new Map(mine.map((b) => [b.market, b])));
+        } else {
+          setBets(new Map());
+        }
+      } catch (err) {
+        if (!opts?.silent) {
+          setStatus({ kind: "error", text: err instanceof Error ? err.message : "failed to load markets" });
+        }
+      } finally {
+        if (!opts?.silent) setLoading(false);
       }
-    } catch (err) {
-      setStatus({ kind: "error", text: err instanceof Error ? err.message : "failed to load markets" });
-    } finally {
-      setLoading(false);
-    }
-  }, [program, publicKey]);
+    },
+    [program, publicKey],
+  );
 
   React.useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  // Keep the latest busy flag in a ref so the poll can skip a tick mid-transaction
+  // without restarting the interval every time busy toggles.
+  const busyRef = React.useRef(false);
+  React.useEffect(() => {
+    busyRef.current = busy;
+  });
+
+  // Poll the on-chain market state on a gentle interval so the YES/NO pools and
+  // percentages refresh without a reload. 18s stays well clear of devnet RPC 429s.
+  // A subscription (onProgramAccountChange) would fire on every bet across every
+  // market and could burst past the 429 ceiling, so a fixed interval is the robust
+  // choice here. Cleared on unmount, and skipped while a transaction is in flight
+  // so a stale read cannot race the post-transaction refresh.
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      if (busyRef.current) return;
+      void refresh({ silent: true });
+    }, 18_000);
+    return () => clearInterval(id);
   }, [refresh]);
 
   // Live Pyth prices for the feeds on screen, refreshed on a gentle interval.
@@ -281,6 +310,16 @@ export function TheCallApp() {
           <TabsTrigger value="create">Create</TabsTrigger>
         </TabsList>
         <TabsContent value="open">
+          {openMarkets.length > 0 && (
+            <div className="mb-3 flex items-center gap-2 text-xs">
+              <span className="relative flex h-2 w-2" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-medium uppercase tracking-wide text-emerald-400">Live</span>
+              <span className="text-muted-foreground">pools and price refresh every 18s</span>
+            </div>
+          )}
           {grid(openMarkets, "No open markets yet. Open one from the Create tab.")}
         </TabsContent>
         <TabsContent value="resolved">

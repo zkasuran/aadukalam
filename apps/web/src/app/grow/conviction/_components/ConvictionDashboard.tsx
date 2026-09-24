@@ -35,8 +35,48 @@ const SLIPPAGE_BPS = 50;
 // a gap between them. A configured JUPITER_API_KEY on the proxy raises the limit.
 const QUOTE_DELAY_MS = 1200;
 const BUY_DELAY_MS = 600;
+// While a theme is open the constituent prices are re-pulled on this cadence so
+// the weights, the per-leg price and the basket value track the market. This is
+// the cheap price read only (op=price on the proxy), never a swap build, so it
+// stays well clear of the keyless rate limit. 15s, comfortably above any floor.
+const PRICE_POLL_MS = 15_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Small live-price indicator. A pulsing dot while the constituent prices are
+ * polled, plus the clock time of the last successful pull so the refresh is
+ * visible. Muted "connecting" until the first pull lands. */
+function LivePricePill({ pricedAt }: { pricedAt: number | null }) {
+  const live = pricedAt !== null;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80"
+      aria-live="polite"
+    >
+      <span className="relative flex h-2 w-2" aria-hidden>
+        {live ? (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        ) : null}
+        <span
+          className={
+            "relative inline-flex h-2 w-2 rounded-full " +
+            (live ? "bg-emerald-500" : "bg-muted-foreground/50")
+          }
+        />
+      </span>
+      {live ? (
+        <>
+          <span className="text-emerald-400">Live</span>
+          <span className="tabular-nums text-muted-foreground/70">
+            {new Date(pricedAt).toLocaleTimeString()}
+          </span>
+        </>
+      ) : (
+        <span>connecting</span>
+      )}
+    </span>
+  );
+}
 
 export function ConvictionDashboard() {
   const themes = useMemo(() => themeSummaries(), []);
@@ -45,6 +85,7 @@ export function ConvictionDashboard() {
   const [budget, setBudget] = useState(100);
   const [constituents, setConstituents] = useState<Constituent[]>([]);
   const [enrichError, setEnrichError] = useState(false);
+  const [lastPricedAt, setLastPricedAt] = useState<number | null>(null);
   const [quotes, setQuotes] = useState<Record<string, QuoteState>>({});
   const [execs, setExecs] = useState<Record<string, ExecState>>({});
   const [previewing, setPreviewing] = useState(false);
@@ -52,23 +93,34 @@ export function ConvictionDashboard() {
 
   const { publicKey, sendTransaction, connected } = useWallet();
 
-  // Load the deduped theme members, then enrich them with a live Jupiter price
-  // pull (liquidity, market cap, 24h change). Registry numbers seed the view so
-  // it renders instantly and survives a rate-limited price call.
+  // Load the deduped theme members, then keep them priced live. Registry numbers
+  // seed the view so it renders instantly and survives a rate-limited call, then
+  // a Jupiter price pull (liquidity, market cap, 24h change, USD price) refreshes
+  // them on an interval so the weights, per-leg price and basket value track the
+  // market while the theme is open. Only the price read repeats here, never a
+  // swap build. The interval is torn down on theme change or unmount.
   useEffect(() => {
     let alive = true;
+    let priced = false;
     const seed = dedupeByUnderlying(tokensByTheme(theme)).map(toConstituent);
+    const mints = seed.map((c) => c.mint);
     setConstituents(seed);
     setQuotes({});
     setExecs({});
     setEnrichError(false);
-    (async () => {
-      const prices = await getJupiterPrice(seed.map((c) => c.mint));
+    setLastPricedAt(null);
+
+    const poll = async () => {
+      const prices = await getJupiterPrice(mints);
       if (!alive) return;
       if (Object.keys(prices).length === 0) {
-        setEnrichError(true);
+        // Keep the last good prices on a transient miss. Flag the fallback banner
+        // only while no live pull has landed yet for this theme.
+        if (!priced) setEnrichError(true);
         return;
       }
+      priced = true;
+      setEnrichError(false);
       setConstituents((prev) =>
         prev.map((c) => {
           const p = prices[c.mint];
@@ -82,9 +134,14 @@ export function ConvictionDashboard() {
           };
         }),
       );
-    })();
+      setLastPricedAt(Date.now());
+    };
+
+    void poll();
+    const id = setInterval(() => void poll(), PRICE_POLL_MS);
     return () => {
       alive = false;
+      clearInterval(id);
     };
   }, [theme]);
 
@@ -194,6 +251,12 @@ export function ConvictionDashboard() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">
+              Live basket
+            </p>
+            <LivePricePill pricedAt={lastPricedAt} />
+          </div>
           <BasketTable
             legs={plan}
             untradable={untradable}
