@@ -22,5 +22,10 @@
     "@types/node": "22.20.4",
     "vitest": "5.0.1",
     "prettier": "^3.3.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "rpc-websockets>uuid": "9.0.1"
+    }
   }
 }
