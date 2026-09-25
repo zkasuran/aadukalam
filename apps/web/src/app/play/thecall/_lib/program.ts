@@ -5,7 +5,7 @@
 
 import { AnchorProvider, BN, Program, type Wallet } from "@coral-xyz/anchor";
 import { type Connection, PublicKey } from "@solana/web3.js";
-import { getToken, loadTokens, type TokenInfo } from "@aadukalam/data";
+import { getToken, loadTokens, bestPythFeed, type TokenInfo } from "@aadukalam/data";
 
 import idlJson from "./idl/thecall.json";
 import type { Thecall } from "./idl/thecall";
@@ -102,10 +102,16 @@ export function decodeMarket(
   const deadline = Number(toBigInt(acct.deadline));
   const token = tokenByFeed(feedIdHex);
   const resolved = acct.resolved;
+  // Display price uses the token's preferred feed (equity feed, which Pyth keeps
+  // sponsored and fresh on-chain) when the token is known, so the card shows a
+  // live price even for a market opened against the 24/7 xStock feed. Settlement
+  // still binds to feedIdHex.
+  const displayFeed = token ? bestPythFeed(token) : null;
   return {
     address: address.toBase58(),
     creator: acct.creator.toBase58(),
     feedIdHex,
+    displayFeedIdHex: displayFeed ? normalizeFeedHex(displayFeed) : feedIdHex,
     targetPrice,
     expo,
     deadline,

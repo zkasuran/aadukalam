@@ -111,7 +111,7 @@ export function TheCallApp() {
   // Live Pyth prices for the feeds on screen, refreshed on a gentle interval.
   React.useEffect(() => {
     let cancelled = false;
-    const feeds = Array.from(new Set(markets.map((m) => m.feedIdHex)));
+    const feeds = Array.from(new Set(markets.map((m) => m.displayFeedIdHex)));
     if (feeds.length === 0) return;
     const load = async () => {
       const entries = await Promise.all(
@@ -243,7 +243,7 @@ export function TheCallApp() {
           <MarketCard
             key={m.address}
             market={m}
-            live={prices.get(m.feedIdHex) ?? null}
+            live={prices.get(m.displayFeedIdHex) ?? null}
             userBet={bets.get(m.address) ?? null}
             connected={!!publicKey}
             busy={busy}

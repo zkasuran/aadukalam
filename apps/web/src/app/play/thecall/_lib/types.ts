@@ -11,6 +11,10 @@ export interface MarketView {
   creator: string;
   /** 64-char hex feed id (no 0x), as stored in the account */
   feedIdHex: string;
+  /** feed id used only for the live-price DISPLAY: the token's equity feed
+   * (kept fresh on-chain, keyless) when known, else the stored feed. Settlement
+   * always binds to feedIdHex, never this. */
+  displayFeedIdHex: string;
   /** strike in feed fixed point */
   targetPrice: bigint;
   /** feed exponent, e.g. -5 */
