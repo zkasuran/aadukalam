@@ -51,7 +51,7 @@ Two Anchor programs, configured for devnet:
 
 Real SDKs and APIs, not mocks.
 
-- Pyth Hermes: fair value for TruePrice, Nightguard and The Call. Hermes gated its live price endpoints behind a key in August 2026, so those reads go through a server proxy that injects `PYTH_API_KEY` and never exposes it to the browser. With no key set the app falls back to the Jupiter underlying-equity reference, so it runs keyless.
+- Pyth: fair value for TruePrice, Nightguard and The Call. Read straight off Solana mainnet, no API key. Pyth keeps sponsored price-feed accounts live on-chain, so a server proxy derives each feed's PDA under the push-oracle program and reads the `PriceUpdateV2` account over RPC. The Hermes HTTP price service was put behind a paid key in the August 2026 Pyth Core upgrade; the on-chain feeds stay permissionless. A `PYTH_API_KEY` can switch on the keyed Hermes path but is not required. A token with no live equity feed falls back to the Jupiter underlying-equity reference.
 - Jupiter swap API: quotes and swaps for Conviction, Leash and Swipe.
 - Kamino klend v12: borrow quotes and liquidation health for Swipe and Nightguard, isolated on `@solana/kit` behind the server routes above.
 - Meteora DBC SDK: three equity-tuned launch presets for Opening Bell.
@@ -92,7 +92,7 @@ Copy `.env.example` to `.env.local` and fill what you need. The app runs with de
 | `NEXT_PUBLIC_SOLANA_RPC_DEVNET` | Devnet RPC for our programs. |
 | `NEXT_PUBLIC_SOLANA_CLUSTER` | Active cluster, `devnet` by default. |
 | `NEXT_PUBLIC_PYTH_HERMES` | Pyth Hermes base URL. |
-| `PYTH_API_KEY` | Optional Hermes live-price key. Unset falls back to the Jupiter reference. |
+| `PYTH_API_KEY` | Optional. Switches on the keyed Hermes price path. Unset reads Pyth on-chain from Solana mainnet, no key. |
 | `JUPITER_API_BASE` | Jupiter API base. The keyless lite tier needs no key. |
 | `JUPITER_API_KEY` | Optional key for the paid Jupiter tier. |
 | `MINIMAX_API_BASE` | MiniMax OpenAI-compatible base URL, server-side. |
@@ -108,7 +108,7 @@ Real:
 - On-chain balances read over RPC (Fine Print).
 - Jupiter quotes and swaps the user signs (Conviction, Leash, Swipe).
 - Kamino market, reserve and obligation reads plus the built borrow transaction (Swipe, Nightguard).
-- Pyth Hermes prices when a key is set, the Jupiter equity reference otherwise (TruePrice).
+- Pyth 24/7 fair value read on-chain from Solana mainnet, keyless (TruePrice), the Jupiter equity reference as a fallback.
 - Tessera and PreStocks backing data (Receipt).
 - The MiniMax tool-calling agent (Leash).
 - Meteora DBC pool configuration and curve math (Opening Bell).
