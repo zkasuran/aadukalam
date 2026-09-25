@@ -10,7 +10,7 @@ One honest neobrokerage for tokenized stocks on Solana. Ten modules, four pillar
 [![Anchor](https://img.shields.io/badge/Anchor-0.32-512BD4)](https://www.anchor-lang.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-201%20passing-brightgreen)](#run-it)
+[![Tests](https://img.shields.io/badge/tests-215%20passing-brightgreen)](#run-it)
 [![Licence](https://img.shields.io/badge/licence-SAND--1.0-orange)](LICENSE)
 
 **[Live app](https://aadukalam-nine.vercel.app)** · **[2-minute demo](https://youtu.be/sHd4OjPmQ3s)** · built for [Stocklana](https://hackathons.solana.com/hackathons/stocklana)
@@ -106,7 +106,7 @@ pnpm dev         # run the web app
 pnpm build       # build every package (10 module routes, 12 API routes)
 pnpm typecheck
 pnpm lint
-pnpm test        # 201 unit tests across web, sdk and data
+pnpm test        # 215 unit tests across web, sdk and data
 ```
 
 The Anchor programs build and test from the `anchor/` workspace:
@@ -157,4 +157,4 @@ A price that could not be fetched shows "no live price", never a fake one.
 
 Licence: Source-Available No-Derivatives 1.0 (SPDX `LicenseRef-zkasuran-SAND-1.0`). See `LICENSE`. This is a competition entry, not a contribution, so the outbound licence is source-available and no-derivatives. Third-party SDKs keep their own licences, named in `NOTICE`.
 
-Built with Claude (Anthropic). The design, review and verification were done by the author. Verified before shipping: 201 unit tests, a full production build across 10 module routes and 12 API routes, plus `anchor build` and 8 program tests.
+Built with Claude (Anthropic). The design, review and verification were done by the author. Verified before shipping: 215 unit tests, a full production build across 10 module routes and 12 API routes, plus `anchor build` and 8 program tests.
