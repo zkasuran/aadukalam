@@ -77,7 +77,7 @@ export function TickerDetail({
       ? usd(row.pythFair)
       : "No feed price";
   const pythSub = pythKeyMissing
-    ? "no PYTH_API_KEY set on the server"
+    ? "on-chain Pyth read did not return"
     : row.feed
       ? `feed ${row.feed.slice(0, 8)}…`
       : "no Pyth feed for this token";
@@ -152,9 +152,9 @@ export function TickerDetail({
           )}
           <p className="text-muted-foreground">
             {row.fair.source === "pyth"
-              ? "Fair value here is the Pyth oracle price, pulled through our keyed server proxy."
+              ? "Fair value here is the Pyth oracle price, read on-chain from the sponsored feed account on Solana mainnet through our server proxy, no API key."
               : row.fair.source === "underlying"
-                ? "With no Pyth key set, fair value falls back to the underlying equity reference the Jupiter price API returns for this xStock. Premium and discount are measured against that number. The Pyth column stays honestly blank."
+                ? "The on-chain Pyth read did not return for this token, so fair value falls back to the underlying equity reference the Jupiter price API returns for this xStock. Premium and discount are measured against that number. The Pyth column stays honestly blank."
                 : "No fair-value reference resolved for this token, so premium and discount cannot be shown."}
           </p>
         </CardContent>

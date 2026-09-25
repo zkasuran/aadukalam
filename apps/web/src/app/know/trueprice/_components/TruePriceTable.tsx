@@ -196,12 +196,11 @@ export function TruePriceTable({
 
       {snap?.pythKeyMissing ? (
         <div className="rounded-lg border border-border bg-card/60 p-3 text-sm">
-          <span className="font-medium">Pyth fair value unavailable.</span>{" "}
+          <span className="font-medium">Pyth fair value unavailable right now.</span>{" "}
           <span className="text-muted-foreground">
-            No PYTH_API_KEY is set on the server, so the keyed Hermes reads are skipped. Prices below
-            are the live on-chain Jupiter price. Premium or discount is measured against the
-            underlying equity reference Jupiter returns for each xStock. Add a key to layer in the
-            Pyth 24/7 oracle fair value.
+            The on-chain Pyth read did not return, so prices below are the live on-chain Jupiter
+            price and premium or discount is measured against the underlying equity reference
+            Jupiter returns for each xStock. Reload to retry the Pyth read.
           </span>
         </div>
       ) : null}
@@ -312,8 +311,8 @@ export function TruePriceTable({
 
       <p className="text-xs text-muted-foreground">
         {snap ? `${rows.length} of ${snap.rows.length} tokenized stocks. ` : ""}
-        Prices from the Jupiter price API and Pyth Hermes, read-only. Click a row for the live chart
-        and the off-hours story.
+        On-chain price from the Jupiter price API, Pyth 24/7 fair value read on-chain from Solana
+        mainnet (no API key), read-only. Click a row for the live chart and the off-hours story.
       </p>
     </div>
   );

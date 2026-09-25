@@ -106,7 +106,10 @@ describe("impliedPrice24hAgo", () => {
   });
 });
 
-const AAPL_FEED = "978e6cc68a119ce066aa830017318563a9ed04ec3a0a6439010fc11296a58675";
+// AAPL has both a 24/7 xStock feed and the regular US-equity feed. bestPythFeed
+// prefers the equity feed (the one Pyth keeps sponsored + fresh on-chain, keyless).
+const AAPL_XSTOCK_FEED = "978e6cc68a119ce066aa830017318563a9ed04ec3a0a6439010fc11296a58675";
+const AAPL_EQUITY_FEED = "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688";
 
 const AAPL: TokenInfo = {
   ticker: "AAPLx",
@@ -118,8 +121,8 @@ const AAPL: TokenInfo = {
   decimals: 8,
   rights: { voting: false, dividends: null, redemption: null, backing: "1:1 underlying" },
   themes: ["mag7"],
-  pythFeedId: AAPL_FEED,
-  pythEquityFeedId: "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688",
+  pythFeedId: AAPL_XSTOCK_FEED,
+  pythEquityFeedId: AAPL_EQUITY_FEED,
   pythOndoFeedId: null,
   liquidityUsd: 663258,
 };
@@ -133,7 +136,7 @@ const jupInfo: JupInfo = {
 };
 
 describe("buildRow", () => {
-  it("uses the underlying reference when Pyth is absent (key missing case)", () => {
+  it("uses the underlying reference when Pyth is absent", () => {
     const row = buildRow(AAPL, jupInfo, undefined);
     expect(row.dexPrice).toBeCloseTo(336.5656, 3);
     expect(row.pythFair).toBeNull();
@@ -142,14 +145,14 @@ describe("buildRow", () => {
     expect(row.premium).not.toBeNull();
     expect(row.premium as number).toBeCloseTo(-0.001274, 5);
     expect(row.drift).toBe("discount"); // -0.127% is just beyond the 0.1% band
-    expect(row.feed).toBe(AAPL_FEED);
+    expect(row.feed).toBe(AAPL_EQUITY_FEED);
     expect(row.change24h).toBeCloseTo(-1.5266, 3);
     expect(row.liquidity).toBeCloseTo(665344.18, 2);
   });
 
   it("uses Pyth as the anchor when a price is present", () => {
     const pyth: PythPrice = {
-      feedId: AAPL_FEED,
+      feedId: AAPL_EQUITY_FEED,
       price: 34000000000, // 340.00 at expo -8
       conf: 5000000,
       expo: -8,

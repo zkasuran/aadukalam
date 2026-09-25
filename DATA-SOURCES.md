@@ -6,12 +6,15 @@ redistribute any provider's data, so no redistribution grant is relied on. Where
 publishes explicit terms we follow them, where an endpoint is public with no stated grant we use
 it read-only and say so here rather than assuming permission we do not have.
 
-## Pyth (Hermes price service)
-- Pulls: latest price updates and price-feed metadata for equity, xStock and Ondo feeds.
+## Pyth (price feeds, read on-chain from Solana mainnet)
+- Pulls: the latest sponsored price update for each equity, xStock and Ondo feed, plus feed metadata.
 - Used by: TruePrice, Nightguard, The Call (display) and The Call on-chain settlement.
-- Terms: the live price endpoints are key-gated (Pyth Pro) since 2026-08-26. We read them
-  server-side with a key the operator supplies, never in the browser. Feed-id metadata is free.
-  Used read-only, no price data is republished.
+- How: Pyth keeps sponsored price-feed accounts live on Solana mainnet. We derive each feed's PDA
+  under the push-oracle program and read the PriceUpdateV2 account straight off the chain over RPC, so
+  no API key and no Pyth Pro plan is needed. The Hermes HTTP price service was put behind a paid key in
+  the 2026-08-26 Pyth Core upgrade; the on-chain feeds stay permissionless. If a PYTH_API_KEY is set the
+  server can use the keyed Hermes path instead, but it is optional.
+- Terms: on-chain account state is public and read read-only, nothing republished.
 
 ## Jupiter (swap and price API)
 - Pulls: quotes, swap transactions to be signed by the user and token prices including the

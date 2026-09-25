@@ -116,8 +116,14 @@ export function tokensByIssuer(issuer: string): TokenInfo[] {
   return REGISTRY.filter((t) => t.issuer.toLowerCase().includes(q));
 }
 
-/** Prefer the 24/7 xStock feed, then the regular equity feed, then Ondo. */
+/**
+ * Prefer the regular US-equity feed, then the 24/7 xStock feed, then Ondo. The
+ * equity feed is the one Pyth keeps live and sponsored on-chain (keyless), and it
+ * is the real underlying-stock fair value that TruePrice compares the tokenized
+ * DEX price against. The xStock/Ondo feeds are the fallback when a token has no
+ * equity feed. See .hq/research/pyth.md for the keyless coverage map.
+ */
 export function bestPythFeed(t: TokenInfo): string | null {
-  return t.pythFeedId || t.pythEquityFeedId || t.pythOndoFeedId || null;
+  return t.pythEquityFeedId || t.pythFeedId || t.pythOndoFeedId || null;
 }
 

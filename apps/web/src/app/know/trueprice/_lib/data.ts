@@ -1,9 +1,9 @@
 // Client-side data orchestration for TruePrice. Batches the live Jupiter price
-// reads under the 50-mint cap, probes our keyed Pyth proxy once to learn whether
-// a key is configured and only spends the Pyth batch calls when it is. Every
+// reads under the 50-mint cap, probes /api/pyth once to check the keyless
+// on-chain Pyth read is answering, then pulls the Pyth fair values. Every
 // call goes through OUR server proxies (/api/jupiter, /api/pyth), never straight
-// to an upstream, so no key touches the browser. Falls back cleanly: a missing
-// Pyth key leaves pythFair null and the UI labels it unavailable.
+// to an upstream. Falls back cleanly: if the on-chain Pyth read does not return,
+// the row's pythFair stays null and the UI shows the underlying equity reference.
 
 import {
   fetchPythPrices,
