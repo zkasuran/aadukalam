@@ -79,4 +79,59 @@ describe("compactUsd", () => {
     expect(compactUsd(32.1e6)).toBe("$32.1M");
     expect(compactUsd(-64.2e9)).toBe("-$64.2B");
   });
+
+  it("handles boundaries, zero, thousands and non-finite input", () => {
+    expect(compactUsd(0)).toBe("$0");
+    expect(compactUsd(999)).toBe("$999");
+    expect(compactUsd(1e3)).toBe("$1.0K");
+    expect(compactUsd(1e6)).toBe("$1.0M");
+    expect(compactUsd(1e9)).toBe("$1.0B");
+    expect(compactUsd(1e12)).toBe("$1.00T");
+    expect(compactUsd(NaN)).toBe("n/a");
+    expect(compactUsd(Infinity)).toBe("n/a");
+  });
+});
+
+describe("buildValuationDesk: adversarial rows", () => {
+  it("excludes a zero or negative mark price from the desk", () => {
+    const d = buildValuationDesk([
+      row({ symbol: "OK", markPrice: 100, price: 110, markValuation: 1e9, impliedValuation: 1.1e9 }),
+      row({ symbol: "ZERO", markPrice: 0, price: 5, markValuation: 1e9, impliedValuation: 1e9 }),
+      row({ symbol: "NEG", markPrice: -100, price: 5, markValuation: 1e9, impliedValuation: 1e9 }),
+    ]);
+    expect(d.count).toBe(1);
+    expect(d.legs[0].row.symbol).toBe("OK");
+  });
+
+  it("excludes a row whose premiumPct is NaN", () => {
+    const d = buildValuationDesk([
+      row({ symbol: "OK", markPrice: 100, price: 110, premiumPct: 0.1, markValuation: 1e9, impliedValuation: 1.1e9 }),
+      row({ symbol: "NAN", markPrice: 100, price: 110, premiumPct: NaN, markValuation: 1e9, impliedValuation: 1.1e9 }),
+    ]);
+    expect(d.count).toBe(1);
+    expect(d.legs[0].row.symbol).toBe("OK");
+  });
+
+  it("a single premium name leaves topDiscount null", () => {
+    const d = buildValuationDesk([
+      row({ symbol: "UP", markPrice: 100, price: 130, markValuation: 1e9, impliedValuation: 1.3e9 }),
+    ]);
+    expect(d.count).toBe(1);
+    expect(d.topPremium?.row.symbol).toBe("UP");
+    expect(d.topDiscount).toBeNull();
+  });
+
+  it("an all-discount book leaves topPremium null and a negative spread", () => {
+    const d = buildValuationDesk([
+      row({ symbol: "D1", markPrice: 100, price: 80, markValuation: 1e9, impliedValuation: 0.8e9 }),
+      row({ symbol: "D2", markPrice: 100, price: 90, markValuation: 2e9, impliedValuation: 1.8e9 }),
+    ]);
+    expect(d.topPremium).toBeNull();
+    expect(d.topDiscount?.row.symbol).toBe("D1");
+    expect(d.spread).toBeLessThan(0);
+  });
+
+  it("does not divide by zero on an empty or all-invalid book", () => {
+    expect(buildValuationDesk([row({ symbol: "BAD", markPrice: 0, markValuation: 0, impliedValuation: 0 })]).spread).toBe(0);
+  });
 });

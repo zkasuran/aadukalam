@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import type {
-  BackingProof,
-  ReceiptResponse,
-  ReceiptRow,
-} from "@/app/know/receipt/_lib/types";
+import type { ReceiptResponse } from "@/app/know/receipt/_lib/types";
+import {
+  normalizePreStocks,
+  type VolumeContext,
+} from "@/app/know/receipt/_lib/prestocksNormalize";
 
 // PreStocks provider route. Reads /api/prestocks for the product list and
 // /api/stats for daily volume then returns normalized ReceiptRow[] tagged
@@ -23,39 +23,9 @@ export const dynamic = "force-dynamic";
 
 const BASE = "https://prestocks.com/api";
 
-interface PreStock {
-  name: string;
-  symbol: string;
-  description?: string;
-  image?: string;
-  external_url?: string;
-  contract_address: string; // Solana mint
-  markPrice: number;
-  markValuation: number;
-  tokenPrice: number;
-  impliedValuation: number;
-  supply: number;
-}
-
 interface PreStocksStats {
   volume: Array<Record<string, number | string>>;
 }
-
-// PreStocks publishes no proof of reserve of any kind. This is a constant, not a
-// missing fetch: ~20 proof-related paths were probed and every one 404s.
-const PRESTOCKS_BACKING: BackingProof = {
-  hasProof: false,
-  kind: "none",
-  legalStructure: null,
-  custodian: null,
-  auditor: null,
-  auditId: null,
-  auditFindings: null,
-  feedUrl: null,
-  proofUrl: null,
-  note:
-    "PreStocks publishes no proof of reserve, no attestation, no audit and no SPV holdings count. The only on-chain handle is the mint, so the 1:1 SPV backing claim cannot be checked against any public source. In May 2026 Anthropic and OpenAI warned that share transfers to these SPVs are void.",
-};
 
 let cache: ReceiptResponse | null = null;
 
@@ -83,9 +53,7 @@ async function getJSON<T>(path: string, tries = 3): Promise<T> {
 
 // Latest daily volume per symbol from /api/stats. Raw units as PreStocks reports
 // them, surfaced as context and labeled, never asserted as dollar liquidity.
-function latestVolume(
-  stats: PreStocksStats | null
-): { date: string | null; bySymbol: Record<string, number> } {
+function latestVolume(stats: PreStocksStats | null): VolumeContext {
   if (!stats || !Array.isArray(stats.volume) || stats.volume.length === 0) {
     return { date: null, bySymbol: {} };
   }
@@ -102,48 +70,15 @@ function latestVolume(
   return { date, bySymbol };
 }
 
-function buildRow(
-  p: PreStock,
-  vol: { date: string | null; bySymbol: Record<string, number> }
-): ReceiptRow {
-  const company = p.name.replace(/ PreStocks$/i, "").trim();
-  const premiumPct = p.markPrice ? p.tokenPrice / p.markPrice - 1 : null;
-  const companyShares = p.markPrice ? p.markValuation / p.markPrice : null;
-  const onChainMktCap = Number.isFinite(p.supply) ? p.supply * p.tokenPrice : null;
-  const recentVolume = vol.bySymbol[p.symbol];
-  return {
-    provider: "prestocks",
-    company,
-    symbol: p.symbol,
-    code: null,
-    sector: null,
-    mint: p.contract_address,
-    price: p.tokenPrice,
-    markPrice: p.markPrice,
-    premiumPct,
-    supply: Number.isFinite(p.supply) ? p.supply : null,
-    holders: null,
-    markValuation: p.markValuation,
-    impliedValuation: Number.isFinite(p.impliedValuation) ? p.impliedValuation : null,
-    companyShares,
-    onChainMktCap,
-    metadataUri: null,
-    externalUrl: p.external_url ?? "https://prestocks.com",
-    recentVolume: recentVolume ?? null,
-    recentVolumeDate: recentVolume !== undefined ? vol.date : null,
-    backing: PRESTOCKS_BACKING,
-  };
-}
-
 export async function GET() {
   try {
     const [products, stats] = await Promise.all([
-      getJSON<PreStock[]>("/prestocks"),
+      getJSON<unknown>("/prestocks"),
       getJSON<PreStocksStats>("/stats").catch(() => null),
     ]);
 
     const vol = latestVolume(stats);
-    const rows = products.map((p) => buildRow(p, vol));
+    const rows = normalizePreStocks(products, vol);
 
     cache = {
       provider: "prestocks",
