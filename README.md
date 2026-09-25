@@ -1,8 +1,25 @@
+<div align="center">
+
 # Aadukalam
 
-The arena that never closes. One honest neobrokerage for tokenized stocks on Solana, built for the Stocklana hackathon. "Aadukalam" is Tamil for the arena, the ground where the contest is fought. Regular brokerages shut at 4pm and go dark on weekends. Tokenized stocks trade around the clock, so the account that holds them should too.
+### The arena that never closes
 
-Ten modules under four pillars, on one wallet session and one design system.
+One honest neobrokerage for tokenized stocks on Solana. Ten modules, four pillars, one wallet session.
+
+[![Solana](https://img.shields.io/badge/Solana-devnet-14F195?logo=solana&logoColor=black)](https://solana.com)
+[![Anchor](https://img.shields.io/badge/Anchor-0.32-512BD4)](https://www.anchor-lang.com)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tests](https://img.shields.io/badge/tests-201%20passing-brightgreen)](#run-it)
+[![Licence](https://img.shields.io/badge/licence-SAND--1.0-orange)](LICENSE)
+
+**[Live app](https://aadukalam-nine.vercel.app)** · **[2-minute demo](https://youtu.be/sHd4OjPmQ3s)** · built for [Stocklana](https://hackathons.solana.com/hackathons/stocklana)
+
+</div>
+
+![Aadukalam landing](docs/screenshots/landing.png)
+
+"Aadukalam" is Tamil for the arena, the ground where the contest is fought. Regular brokerages shut at 4pm and go dark on weekends. Tokenized stocks trade around the clock, so the account that holds them should too. Aadukalam is the layer for owning a tokenized stock, not just buying one: know what you hold, grow it on your terms, spend it without selling, then take a position on the story. Everything on screen is real. Our two programs run on devnet. Every third-party trade is a transaction you sign with your own wallet.
 
 ## The four pillars, ten modules
 
@@ -18,6 +35,26 @@ Ten modules under four pillars, on one wallet session and one design system.
 | USE | Nightguard | `/use/nightguard` | An off-hours liquidation shield. Tracks the buffer to liquidation and the market clock so an overnight wick does not catch you asleep. |
 | PLAY | The Call | `/play/thecall` | A prediction market on stock outcomes, settled on-chain by Pyth as the authority rather than a display feed. |
 | Companion | Opening Bell | `/opening-bell` | An equity-tuned launchpad on Meteora DBC with three presets. A separate issuer-facing surface, kept out of the consumer pitch. |
+
+## Watch the demo
+
+[![Aadukalam demo](https://img.youtube.com/vi/sHd4OjPmQ3s/maxresdefault.jpg)](https://youtu.be/sHd4OjPmQ3s)
+
+A 2-minute tour of the live app, the on-chain Pyth read, the pre-IPO valuation desk and the two devnet programs.
+
+## Screens
+
+**TruePrice: the on-chain price next to a 24/7 Pyth fair value, read keyless off Solana mainnet.**
+
+![TruePrice](docs/screenshots/trueprice.png)
+
+**Receipt: a pre-IPO valuation desk that ranks PreStocks names by the on-chain implied valuation against the platform mark.**
+
+![PreStocks valuation desk](docs/screenshots/prestocks.png)
+
+**The Call: a prediction market on stock outcomes, showing the live Pyth price against each target, settled on-chain.**
+
+![The Call](docs/screenshots/thecall.png)
 
 ## Architecture
 
@@ -46,17 +83,16 @@ Two Anchor programs, configured for devnet:
 | thecall (Pyth-settled market) | `83f9z9RHjyvFSbcvWQixNq13vXiu35baFiDtqvG8q7LY` | `create_market`, `bet`, `resolve`, `claim` |
 
 `anchor build` passes and all 8 program tests run green on a local validator with staged Pyth price accounts. The Call reads a real `PriceUpdateV2` account on-chain to resolve.
-
 ## Integrations
 
 Real SDKs and APIs, not mocks.
 
-- Pyth: fair value for TruePrice, Nightguard and The Call. Read straight off Solana mainnet, no API key. Pyth keeps sponsored price-feed accounts live on-chain, so a server proxy derives each feed's PDA under the push-oracle program and reads the `PriceUpdateV2` account over RPC. The Hermes HTTP price service was put behind a paid key in the August 2026 Pyth Core upgrade; the on-chain feeds stay permissionless. A `PYTH_API_KEY` can switch on the keyed Hermes path but is not required. A token with no live equity feed falls back to the Jupiter underlying-equity reference.
-- Jupiter swap API: quotes and swaps for Conviction, Leash and Swipe.
-- Kamino klend v12: borrow quotes and liquidation health for Swipe and Nightguard, isolated on `@solana/kit` behind the server routes above.
-- Meteora DBC SDK: three equity-tuned launch presets for Opening Bell.
-- Tessera and PreStocks APIs: the pre-IPO backing data behind Receipt, kept as separate providers so their proof asymmetry is visible.
-- MiniMax M3: the Leash agent, server-side only, with tool calling for price, quote and propose-trade.
+- **Pyth** (keyless, on-chain): fair value for TruePrice, Nightguard and The Call. Read straight off Solana mainnet, no API key. Pyth keeps sponsored price-feed accounts live on-chain, so a server proxy derives each feed's PDA under the push-oracle program and reads the `PriceUpdateV2` account over RPC. The Hermes HTTP price service was put behind a paid key in the August 2026 Pyth Core upgrade. The on-chain feeds stay permissionless. A `PYTH_API_KEY` can switch on the keyed Hermes path but is not required. A token with no live equity feed falls back to the Jupiter underlying-equity reference.
+- **Jupiter** swap API: quotes and swaps for Conviction, Leash and Swipe.
+- **Kamino** klend v12: borrow quotes and liquidation health for Swipe and Nightguard, isolated on `@solana/kit` behind the server routes above.
+- **Meteora** DBC SDK: three equity-tuned launch presets for Opening Bell, a real bonding-curve pool on devnet.
+- **Tessera** and **PreStocks** APIs: the pre-IPO backing data behind Receipt, kept as separate providers so their proof asymmetry is visible. PreStocks also drives the on-chain implied-valuation desk.
+- **MiniMax M3**: the Leash agent, server-side only, with tool calling for price, quote and propose-trade.
 
 The token layer is a 58-token registry, every entry a verified Token-2022 mint, each carrying its issuer rights, theme tags and a Pyth feed id where one exists.
 
@@ -70,7 +106,7 @@ pnpm dev         # run the web app
 pnpm build       # build every package (10 module routes, 12 API routes)
 pnpm typecheck
 pnpm lint
-pnpm test        # 171 unit tests
+pnpm test        # 201 unit tests across web, sdk and data
 ```
 
 The Anchor programs build and test from the `anchor/` workspace:
@@ -88,18 +124,13 @@ Copy `.env.example` to `.env.local` and fill what you need. The app runs with de
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_SOLANA_RPC_MAINNET` | Mainnet RPC for third-party protocol reads (Jupiter, Kamino, balances). |
+| `NEXT_PUBLIC_SOLANA_RPC_MAINNET` | Mainnet RPC for third-party protocol reads (Pyth, Jupiter, Kamino, balances). |
 | `NEXT_PUBLIC_SOLANA_RPC_DEVNET` | Devnet RPC for our programs. |
 | `NEXT_PUBLIC_SOLANA_CLUSTER` | Active cluster, `devnet` by default. |
-| `NEXT_PUBLIC_PYTH_HERMES` | Pyth Hermes base URL. |
 | `PYTH_API_KEY` | Optional. Switches on the keyed Hermes price path. Unset reads Pyth on-chain from Solana mainnet, no key. |
 | `JUPITER_API_BASE` | Jupiter API base. The keyless lite tier needs no key. |
-| `JUPITER_API_KEY` | Optional key for the paid Jupiter tier. |
-| `MINIMAX_API_BASE` | MiniMax OpenAI-compatible base URL, server-side. |
 | `MINIMAX_API_KEY` | MiniMax key for the Leash agent, server-side only. |
-| `MINIMAX_MODEL` | Model id, `MiniMax-M3` by default. |
 | `ANCHOR_WALLET` | Devnet deployer keypair path, devnet SOL only. |
-
 ## Real vs simulated
 
 No funds move from the app. Our programs run on devnet. Every third-party execution is a transaction the app builds and the user signs with their own wallet.
@@ -108,10 +139,10 @@ Real:
 - On-chain balances read over RPC (Fine Print).
 - Jupiter quotes and swaps the user signs (Conviction, Leash, Swipe).
 - Kamino market, reserve and obligation reads plus the built borrow transaction (Swipe, Nightguard).
-- Pyth 24/7 fair value read on-chain from Solana mainnet, keyless (TruePrice), the Jupiter equity reference as a fallback.
-- Tessera and PreStocks backing data (Receipt).
+- Pyth 24/7 fair value read on-chain from Solana mainnet, keyless (TruePrice, The Call, Nightguard), the Jupiter equity reference as a fallback.
+- Tessera and PreStocks backing data plus the on-chain implied-valuation desk (Receipt).
 - The MiniMax tool-calling agent (Leash).
-- Meteora DBC pool configuration and curve math (Opening Bell).
+- A real Meteora DBC pool on devnet (Opening Bell).
 - The two Anchor programs, tested through their full lifecycle on a local validator.
 
 Labeled as modeled on-screen:
@@ -124,6 +155,6 @@ A price that could not be fetched shows "no live price", never a fake one.
 
 ## Licence and AI disclosure
 
-Licence: Source-Available No-Derivatives 1.0 (SPDX `LicenseRef-zkasuran-SAND-1.0`). See `LICENSE`. This is a competition entry, not a contribution, so the outbound licence is source-available and no-derivatives. Third-party SDKs keep their own licences.
+Licence: Source-Available No-Derivatives 1.0 (SPDX `LicenseRef-zkasuran-SAND-1.0`). See `LICENSE`. This is a competition entry, not a contribution, so the outbound licence is source-available and no-derivatives. Third-party SDKs keep their own licences, named in `NOTICE`.
 
-Built with Claude (Anthropic). The design, review and verification were done by the author. Verified before shipping: 171 unit tests, a full production build across 10 module routes and 12 API routes, plus `anchor build` and 8 program tests.
+Built with Claude (Anthropic). The design, review and verification were done by the author. Verified before shipping: 201 unit tests, a full production build across 10 module routes and 12 API routes, plus `anchor build` and 8 program tests.
