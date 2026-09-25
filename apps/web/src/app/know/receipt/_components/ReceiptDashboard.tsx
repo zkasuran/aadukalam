@@ -87,10 +87,18 @@ export function ReceiptDashboard() {
   const livePrices = useJupiterPrices(tesseraMints);
   const tesseraRows = tessera.data?.rows ?? [];
 
+  // Deep-linkable tab: /know/receipt?tab=prestocks opens the PreStocks desk
+  // directly, so a link or a demo capture can land on either bounty surface.
+  const [tab, setTab] = useState<string>("tessera");
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("tab");
+    if (p === "prestocks" || p === "tessera") setTab(p);
+  }, []);
+
   return (
     <div className="mt-6">
       <GradeLegend />
-      <Tabs defaultValue="tessera" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList>
           <TabsTrigger value="tessera">Tessera</TabsTrigger>
           <TabsTrigger value="prestocks">PreStocks</TabsTrigger>
