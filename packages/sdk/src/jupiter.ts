@@ -98,9 +98,14 @@ export const JUPITER_PROGRAM_ID = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4";
 export async function getJupiterPrice(mints: string[], baseUrl = ""): Promise<JupiterPriceMap> {
   if (mints.length === 0) return {};
   const url = `${baseUrl}/api/jupiter?op=price&ids=${encodeURIComponent(mints.join(","))}`;
-  const res = await fetch(url);
-  if (!res.ok) return {};
-  return (await res.json()) as JupiterPriceMap;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return {};
+    return (await res.json()) as JupiterPriceMap;
+  } catch {
+    // network-level failure (offline, aborted, DNS): degrade to no prices
+    return {};
+  }
 }
 
 /**

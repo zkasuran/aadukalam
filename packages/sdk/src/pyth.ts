@@ -122,10 +122,15 @@ export async function hermesLatest(
 export async function fetchPythPrices(feedIds: string[], baseUrl = ""): Promise<PythPrice[]> {
   if (feedIds.length === 0) return [];
   const url = `${baseUrl}/api/pyth?ids=${encodeURIComponent(feedIds.join(","))}`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const json = (await res.json()) as PythProxyResponse;
-  return json.prices ?? [];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as PythProxyResponse;
+    return json.prices ?? [];
+  } catch {
+    // network-level failure (offline, aborted, DNS): degrade to no Pyth prices
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
