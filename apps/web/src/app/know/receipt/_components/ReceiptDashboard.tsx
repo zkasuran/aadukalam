@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ReceiptResponse } from "../_lib/types";
 import { useJupiterPrices } from "../_lib/useJupiterPrices";
 import { ProviderPanel } from "./ProviderPanel";
+import { PreStocksValuationDesk } from "./PreStocksValuationDesk";
 import { WatchlistStrip } from "./WatchlistStrip";
 
 interface Slice {
@@ -117,6 +118,7 @@ export function ReceiptDashboard() {
         </TabsContent>
 
         <TabsContent value="prestocks" className="mt-4">
+          <PreStocksValuationDesk rows={prestocks.data?.rows ?? []} />
           <ProviderPanel
             loading={prestocks.loading}
             data={prestocks.data}
